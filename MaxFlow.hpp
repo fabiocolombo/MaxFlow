@@ -45,7 +45,7 @@ private:
     fnode *n2;
   };
 
-  /**node of the network
+  /**node of the network*/
   struct fnode{
     /**flow excess in the node*/
     T excess;
