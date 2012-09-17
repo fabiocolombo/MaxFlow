@@ -1,3 +1,5 @@
+//Author: Fabio Colombo colombo.fabio@gmail.com
+
 #ifndef MAXFLOW_HPP
 #define MAXFLOW_HPP
 #include <list>
@@ -18,198 +20,219 @@
 
 namespace opt{
 
+//Template class to solve Maximum Flow Problems
+//using the push relabel algorithm.
+//Based on:
+//"On implementing the push—relabel method for the maximum flow problem"
+//Lecture Notes in Computer Science, 1995, Volume 920/1995, 157-171
+//by A. Goldberg and B. Cherkassky
 
-/**classe per la gestione dei problemi
-   di flusso massimo e taglio minimo,
-   basata sull'implementazione di Andrew Goldberg
-   dell'algoritmo push_relabel con global update
-   e gap heuristics
-*/
 template <class T> class MaxFlow{
 private:
+  /**node of the network*/
   struct fnode;
-  /**arco della rete di flusso*/
+  /**arc of the network*/
   struct fedge{
-    /**capacit� residua*/
+    /**residual capacity*/
     T resCap;
-    /**capacit� reale*/
+    /**real capacity*/
     T realCap;
-    /**puntatore all'arco opposto*/
+    /**pointer to the opposite arc
     fedge *rev;
-    /**puntatore al nodo di partenza*/
+    /**pointer to the tail node*/
     fnode *n1;
-    /**puntatore al nodo di arrivo*/
+    /**pointer to the head node*/
     fnode *n2;
   };
-  /**nodo della rete di flusso*/
+
+  /**node of the network
   struct fnode{
-    /**eccesso associato al nodo*/
+    /**flow excess in the node*/
     T excess;
-    /**label associata al nodo*/
+    /**node label*/
     int d;
-    /**flag utilizzata per visita in ampiezza*/
+    /**flag used by the breadth-first visit*/
     bool flag;
-    /**lista degli archi uscenti*/
+    /**node outcut*/
     std::list<fedge*> adj;
-    /**lista degli archi entranti*/
+    /**node incut*/
     std::list<fedge*> inList;
     typename std::list<fedge*>::iterator current;
-    /**successore nella lista dei nodi attivi o in
-       quella dei nodi inattivi*/
+    /**pointer to the next node in the nodes list*/
     fnode *next;
-    /**predecessore nella lista dei nodi attivi o in
-       quella dei nodi inattivi*/
+    /**pointer to the previous node in the nodes list*/
     fnode *prev;
-    /**indice nel vettore*/
+    /**index of this node in the array data*/
     int index;
   };
+
 public:
+
   typedef std::map<boost::tuple<int,int>, boost::tuple<T,T,fedge*> > arcMap;
+
  private:
-  /**numero di nodi*/
+  /**nodes number*/
   int n;
-  /**numero di push effettuati*/
+  /**number of executed push moves*/
   int pushes;
-  /**numero di relabel effettuati*/
+  /**number of executed relabel moves*/
   int relabels;
-  /**numero che determina se avviare la global update*/
+  /**counter to handle the global update*/
   int relCount;
-  /**nodo sorgente*/
+  /**source node pointer*/
   fnode *source;
-  /**nodo pozzo*/
+  /**sink node pointer*/
   fnode *sink;
-  /**indice sorgente*/
+  /**source node index*/
   int so;
-  /**indice pozzo*/
+  /**sink node index*/
   int si;
-  /**vettore dei nodi della rete di flusso*/
+  /**nodes vector*/
   std::vector<fnode*> nodes;
-  /**dati associati agli archi della rete di flusso*/
+  /**data associated with the network arcs*/
   arcMap arcData;
-  /**archi del problema*/
+  /**input arcs*/
   std::vector< boost::tuple<int,int> > realArc;
-  /**teste delle liste dei nodi attivi*/
+  /**head pointers to active nodes*/
   std::vector<fnode*> active;
-  /**teste delle liste dei nodi inattivi*/
+  /**head pointers to inactive nodes*/
   std::vector<fnode*> inactive;
 
-  /**label pi� grande di un nodo attivo*/
+  /**biggest label between active nodes*/
   int aindex;
-  /**label pi� grande di un nodo inattivo*/
+  /**biggest label between inactive nodes*/
   int iindex;
 
-  /**crea le strutture dati utilizzate dall'algoritmo*/
+  /**create data structure needed by the algorithm*/
   void createDS();
-  /**operazione push
-     @param no nodo con flusso in eccesso
-     @param e lato su cui effettuare l'operazione
+
+  /**push move
+     @param no node with excess flow
+     @param e edge on which operate
   */
   void push(fedge *e, fnode *no);
-  /**operazione relabel
-     @param no nodo da rietichettare
+
+  /**relabel move
+     @param no node to be relabelled
   */
   void relabel(fnode *no);
-  /**Svuta un nodo o lo disattiva
-     @param no nodo da svuotare
+
+  /**Discharge the node or deactivate it
+     @param no node to be discharged
   */
   void discharge(fnode *no);
-  /**Verifica se un nodo � attivo
-     @param no nodo da verificare
-     @return true se il nodo � attivo
+
+  /**Check if a node is active
+     @param no node to check
+     @return true if the node is active
   */
   bool isActive(fnode *no);
-  /**Verifica se un certo arco � ammissibile
-     @param from nodo di partenza
-     @param to nodo di arrivo
+  /**Check if an arc is admissible
+     @param from tail node
+     @param to head node
   */
   bool admissible(fnode *from, fnode *to);
-  /**Global update*/
+
+  /**Execute a global update*/
   void update();
-  /**Aggiunge un nodo alla lista dei nodi inattivi di un certo livello
-     @param no nodo da aggiungere
-     @param bucket livello a cui aggiungere il nodo
+
+  /**Add a node to an inactive nodes bucket
+     @param no node to be added
+     @param bucket inactive nodes bucket to use
   */
   void addInactive(fnode *no, int bucket);
-  /**Cancella un nodo alla lista dei nodi inattivi di un certo livello
-     @param no nodo da aggiungere
-     @param bucket livello a cui aggiungere il nodo
+
+  /**Remove a node from an inactive nodes bucket
+     @param no node to be remove
+     @param bucket inactive nodes bucket to use
   */
   void delInactive(fnode *no, int bucket);
-  /**Aggiunge un nodo alla lista dei nodi attivi di un certo livello
-     @param no nodo da aggiungere
-     @param bucket livello a cui aggiungere il nodo
+
+  /**Add a node to an active nodes bucket
+     @param no node to be added
+     @param bucket active nodes bucket to use
   */
   void addActive(fnode *no, int bucket);
-  /**Cancella un nodo alla lista dei nodi attivi di un certo livello
-     @param no nodo da aggiungere
-     @param bucket livello a cui aggiungere il nodo
+
+  /**Remove a node from an active nodes bucket
+     @param no node to be remove
+     @param bucket active nodes bucket to use
   */
   void delActive(fnode *no, int bucket);
-  /**Resetta le strutture dati in modo da riavviare poi l'algoritmo*/
+
+  /**Reset data structure in order to restart the algorithm*/
   void reset();
-  /**Operazione di > utilizzata per specializzazione template double*/
+
+  /**Greater than operator to specialized float precision version*/
   bool greater(const T& a, const T& b) const;
-public:
-  /**Costruisce un MaxFlow<T>
-     @param n numero nodi del problema
-  */
-  MaxFlow(int n);
-  /**Costruttore per copia
-     @param mf oggetto da copiare
-  */
-  MaxFlow(const MaxFlow<T>& mf);
-  /**Distruttore*/
-  ~MaxFlow();
-  /**Aggiunge un arco del problema, da invocare prima
-     della chiamata a solve
-     @param from nodo di partenza
-     @param to nodo di arrivo
-     @param cap capacit� dell'arco
-  */
-  void addArc(int from, int to, T cap);
-  /**Calcola il taglio minimo: da chiamare dopo la chiamata a solve
-     @param soCut lista in cui verranno inseriti i lati del taglio pi� vicino alla sorgente
-     @param siCut lista in cui verranno inseriti i lati del taglio pi� vicino al pozzo
-  */
-  void getCut(std::list< boost::tuple<int,int> >& soCut, std::list< boost::tuple<int,int> >& siCut);
-  /**Modifica la capacit� di un arco, da chiamare tra due
-     chiamate di solve successive
-     @param from nodo di partenza dell'arco
-     @param to nodo di arrivo dell'arco
-     @param cap nuova capacita
-     @return true se � stato possibile modificare la capacit�
-  */
-  bool setCap(int from, int to, T cap);
-  /**Seleziona/Modifica il nodo sorgente da chiamare prima di una chiamata
-     a solve
-     @param source nodo sorgente
-  */
-  void setSource(int source);
-  /**Seleziona/Modifica il nodo destinazione da chiamare prima di una chiamata
-     a solve
-     @param sink nodo destinazione
-  */
-  void setSink(int sink);
-  /**Calcola il valore del flusso massimo
-     @return valore del flusso massimo
-  */
-  T solve();
-  /**Stampa su cout statistiche dell'esecuzione dell'algoritmo*/
-  void printStats();
-  /**Costruisce la soluzione primale*/
-  void secondStage();
-  /**Ottiene flusso lungo un arco*/
-  T getFlow(int from,int to);
-  /**controlla se la soluzione � un flusso ammissibile*/
-  bool checkFlowAndCut();
-  /**ritorna un riferimento costante alla mappa interna degli archi*/
+
+  /**return a const reference to the internal data*/
   const arcMap& getArcMap(){return arcData;}
 
-  int getIndex(std::vector<fnode*>& v, fnode* no){
-    return no->index;
-  }
+public:
 
-  /**stampa il problema*/
+  /**Standard constructor
+     @param n nodes number
+  */
+  MaxFlow(int n);
+
+  /**Copy constructor
+     @param mf solver to be copied
+  */
+  MaxFlow(const MaxFlow<T>& mf);
+
+  ~MaxFlow();
+
+  /**Add an arc to the network: must be invoked before solve() method
+     @param from tail node
+     @param to head node
+     @param cap arc capacity
+  */
+  void addArc(int from, int to, T cap);
+
+  /**Compute the minimum cut: must be invoked after solve() method
+     @param soCut list in which will be inserted the arcs in the minimum cut near to the source
+     @param siCut list in which will be inserted the arcs in the minimum cut near to the sink
+  */
+  void getCut(std::list< boost::tuple<int,int> >& soCut, std::list< boost::tuple<int,int> >& siCut);
+
+  /**Change the capacity of an arc: to be invoked between two successive solve() invokation
+     @param from tail node
+     @param to new node
+     @param cap new capacity
+     @return true if has been possible to change the arc capacity
+  */
+  bool setCap(int from, int to, T cap);
+  /**Select the source node: to be invoked before the solve() method
+     @param source source node
+  */
+  void setSource(int source);
+  /**Select the sink node: to be invoked before the solve() method
+     @param sink sink node
+  */
+  void setSink(int sink);
+
+  /**Compute the maximum flow value
+     @return the maximum flow value
+  */
+  T solve();
+
+  /**Print simple stats on the last algorithm execution*/
+  void printStats();
+
+  /**Compute the primal solution*/
+  void secondStage();
+
+  /**Compute the optimal flow on the an arc
+     @param from tail node
+     @param to head node
+  */
+  T getFlow(int from,int to);
+
+  /**Check if the solution is feasible*/
+  bool checkFlowAndCut();
+
+  /**Print the problem in a compact form*/
   void printProblem(std::ostream& os=std::cout);
 };
 
@@ -238,7 +261,7 @@ template<class T> bool MaxFlow<T>::checkFlowAndCut(){
   for(int j=0;j<realArc.size();j++){
     if(getFlow(realArc[j].get<0>(),realArc[j].get<1>())<0) return false;
   }
-  /**verifico vincoli flusso*/
+  /**check flow constraints*/
   for(int i=0;i<n;++i){
     T af,fi=0;
     if(i==so) af=sink->excess;
@@ -310,7 +333,7 @@ template <class T> void MaxFlow<T>::secondStage(){
   const int BLACK=0;
   const int GREY=1;
   const int WHITE=2;
-  //gestione cappi
+  //manage self-loops
   for(int i=0;i<n;++i){
     fnode *no= nodes[i];
     for(typename std::list<fedge*>::iterator ait=no->adj.begin();ait!=no->adj.end();++ait){
@@ -320,7 +343,8 @@ template <class T> void MaxFlow<T>::secondStage(){
       }
     }
   }
-  //inizializzazione
+
+  //initialization
   for(int i=0;i<n;++i){
     nodes[i]->d=WHITE;
     active[i]=0;
@@ -330,7 +354,8 @@ template <class T> void MaxFlow<T>::secondStage(){
   fedge *a;
   T delta;
   tos=bos=0;
-  //elimina il flusso ciclico e ordina topologicamente i nodi
+
+  //delete the cyclic flow and make a topologi nodes sort
   for(int i=0;i<n;++i){
     ni=nodes[i];
     if(ni->d==WHITE && greater(ni->excess,0) && ni!=source && ni!=sink){
@@ -349,14 +374,14 @@ template <class T> void MaxFlow<T>::secondStage(){
 	    }
 	    else
 	      if(nj->d==GREY){
-		/**cerca il flusso minimo nel ciclo*/
+		/**find the minimum flow in the cycle*/
 	        delta=a->resCap;
 		while(true){
 		  delta=std::min(delta,(*nj->current)->resCap);
 		  if(nj==ni) break;
 		  else nj=(*nj->current)->n2;
 		}
-		/**rimuove delta unita di flusso dal ciclo*/
+		/**erase delta flow units from the flow*/
 		nj=ni;
 		while(true){
 		  a=(*nj->current);
@@ -384,7 +409,7 @@ template <class T> void MaxFlow<T>::secondStage(){
 	}//end for
 
 	if(ni->current==ni->adj.end()){
-	  //ho finito la scansione di i
+	  //finish the node i analysis
 	  ni->d=BLACK;
 	  if(ni!=source){
 	    if(bos==NULL) bos=tos=ni;
@@ -508,27 +533,12 @@ template <class T> T MaxFlow<T>::solve(){
     nodes[i]->d=1;
     nodes[i]->excess=0;
     nodes[i]->flag=false;
-    //std::cout<<"next--->"<<nodes[i]->next<<" prev--->"<<nodes[i]->prev<<std::endl;
-    //std::cout<<"active--->"<<active[i]<<" inactive--->"<<inactive[i]<<std::endl;
   }
   source=nodes[so];
   sink=nodes[si];
 
   sink->d=0;
   source->d=n;
-
-//  std::cout<<"compute flow from "<<so<<" to "<<si<<std::endl;
-//  typedef std::map<boost::tuple<int,int>, boost::tuple<T,T,fedge*> > arcMap;
-//
-//  std::cout<<"arcData.size()="<<arcData.size()<<std::endl;
-//  for(typename arcMap::iterator it=arcData.begin();it!=arcData.end();++it){
-//      boost::tuple<T,T,fedge*> t=it->second;
-//      fedge& e= *boost::get<2>(t);
-//      if(e.realCap > 0)
-//        std::cout<<"("<<e.n1->index<<","<<e.n2->index<<"):"<<e.realCap<<std::endl;
-//      if(e.rev->realCap > 0)
-//        std::cout<<"("<<e.rev->n1->index<<","<<e.rev->n2->index<<"):"<<e.rev->realCap<<std::endl;
-//  }
 
 
   //initialize preflow
@@ -553,65 +563,11 @@ template <class T> T MaxFlow<T>::solve(){
   }
 
   while(aindex!=0){
-    //    std::cout<<"aindex--->"<<aindex<<std::endl;
-    #ifdef PRINTDEBUG
-    std::cout<<"_________________update"<<std::endl;
-    for(int i=0;i<n;++i){
-     std::cout<<"nodo "<<i<<" "<<" :"<<nodes[i]->d<<": "<<nodes[i]->excess;
-     if(isActive(nodes[i])) std::cout<<" A ";
-     std::cout<<std::endl;
-    }
-    std::cout<<"archi:"<<std::endl;
-    for(typename arcMap::iterator it=arcData.begin();it!=arcData.end();++it){
-      fedge *e=it->second.get<2>();
-      std::cout<<"analizzo il lato ("<<getIndex(nodes,e->n1)<<","<<getIndex(nodes,e->n2)<<") "<<"resCap="<<e->resCap<<std::endl;
-      e=e->rev;
-      std::cout<<"analizzo il lato ("<<getIndex(nodes,e->n1)<<","<<getIndex(nodes,e->n2)<<") "<<"resCap="<<e->resCap<<std::endl;
-    }
-    #endif
     fnode *no=active[aindex];
-    //std::cout<<"scarico nodo "<<no<<std::endl;
-    #ifdef PRINTDEBUG
-    std::cout<<"lavoro su nodo: "<<getIndex(nodes,no)<<" eccesso:"<<no->excess<<std::endl;
-    #endif
-    // if(true){
-    //   fnode *ptr=active[2];
-    //   std::cout<<"active[aindex]:";
-    //   if(ptr==0) std::cout<<"[]"<<std::endl;
-    //   else{
-    // 	std::cout<<"["<<ptr->index<<":"<<ptr->d;
-    // 	ptr=ptr->next;
-    // 	while(ptr!=0){
-    // 	  std::cout<<", "<<ptr->index<<":"<<ptr->d;
-    // 	  ptr=ptr->next;
-    // 	}
-    // 	std::cout<<"]"<<std::endl;
-    //   }
-    //   std::cout<<"active[no->d]:";
-    //   ptr=active[no->d];
-    //   if(ptr==0) std::cout<<"[]"<<std::endl;
-    //   else{
-    // 	std::cout<<"["<<ptr->index<<":"<<ptr->d;
-    // 	ptr=ptr->next;
-    // 	while(ptr!=0){
-    // 	  std::cout<<", "<<ptr->index<<":"<<ptr->d;
-    // 	  ptr=ptr->next;
-    // 	}
-    // 	std::cout<<"]"<<std::endl;
-    //   }
-    //   std::cout<<"aindex="<<aindex<<std::endl;
-    //   std::cout<<"no->d="<<no->d<<std::endl;
-    //   std::cout<<"no->index="<<no->index<<std::endl;
-    // }
+
     assert(aindex==no->d)      ;
     discharge(no);
-    #ifdef PRINTDEBUG
-    //std::cout<<"eccesso dopo scarico:"<<no->excess<<std::endl;
-    #endif
     if( relCount*0.5 >lim){
-      #ifdef PRINTDEBUG
-      std::cout<<"global update"<<std::endl;
-      #endif
       update();
       relCount=0;
     }
@@ -659,11 +615,8 @@ template <class T> void MaxFlow<T>::discharge(fnode *no){
       fedge *e = *(no->current);
       if(admissible(e->n1,e->n2) && greater(e->resCap,0) ){
 	bool flag=(!greater(e->n2->excess,0));
-	//std::cout<<"eccesso prima:"<<e->n2->excess<<std::endl;
 	push(e,e->n1);
 	if(e->n2!=source && e->n2!=sink && flag){
-	  //std::cout<<"il nodo "<<e->n2<<" diventa attivo"<<std::endl;
-	  //std::cout<<"eccesso:"<<e->n2->excess<<std::endl;
 	  delInactive(e->n2,e->n2->d);
 	  addActive(e->n2,e->n2->d);
 	  e->n2->current=e->n2->adj.begin();
@@ -674,31 +627,9 @@ template <class T> void MaxFlow<T>::discharge(fnode *no){
     }
     if(greater(no->excess,0)){
       int oldd=no->d;
-      //      std::cout<<"faccio relabel di "<<no<<std::endl;
       delActive(no,no->d);
       relabel(no);
-      //      std::cout<<"nuovo label:"<<no->d<<std::endl;
       if(active[oldd]==0 && inactive[oldd]==0){
-	/* if(no->index==88){ */
-	/*   std::cout<<"Lista bucket attivo "<<2<<":"<<std::endl; */
-	/*   fnode *ptr=active[2]; */
-	/*   if(ptr==0) std::cout<<"[]"<<std::endl; */
-	/*   else{ */
-	/*     std::cout<<"["<<ptr->index<<":"<<ptr->d; */
-	/*     ptr=ptr->next; */
-	/*     while(ptr!=0){ */
-	/*       std::cout<<", "<<ptr->index<<":"<<ptr->d; */
-	/*       ptr=ptr->next; */
-	/*     } */
-	/*     std::cout<<"]"<<std::endl; */
-	/*   } */
-	/*   std::cout<<"vecchio livello nodo 88--->"<<no->d<<std::endl; */
-	/* } */
-	no->d=n;
-	/* if(no->index==88){ */
-	/*   if(active[2]!=0) std::cout<<"active[2]->index:"<<active[2]->index<<std::endl; */
-	/*   std::cout<<"setto 88 a"<<n<<std::endl; */
-	/* } */
 	while(++oldd<n){
 	  while(inactive[oldd]!=0){
 	    inactive[oldd]->d=n;
@@ -797,30 +728,7 @@ template <class T> void MaxFlow<T>::printStats(){
   std::cout<<"relabel:"<<relabels<<std::endl;
 }
 
-//#define DEB
-
 template <class T> void MaxFlow<T>::addActive(fnode *no, int bucket){
-#ifdef DEB
-  if(no->index==88){
-    std::cout<<"Lista bucket attivo "<<bucket<<":"<<std::endl;
-    fnode *ptr=active[bucket];
-    if(ptr==0) std::cout<<"[]"<<std::endl;
-    else{
-      std::cout<<"["<<ptr->index<<":"<<ptr->d;
-      ptr=ptr->next;
-      while(ptr!=0){
-	std::cout<<", "<<ptr->index<<":"<<ptr->d;
-	ptr=ptr->next;
-      }
-      std::cout<<"]"<<std::endl;
-    }
-  // assert(bucket==no->d);
-  // std::cout<<"aggiungo il nodo "<<no<<" al bucket "<<bucket<<std::endl;
-  // std::cout<<"no->next:"<<no->next<<" no->prev:"<<no->prev<<std::endl;
-  // std::cout<<"testa lista:"<<active[bucket]<<std::endl;
-    std::cout<<"aggiungo al bucket attivo "<<bucket<<", il nodo "<<no->index<<std::endl;
-  }
-#endif
   if(active[bucket]==0){
     no->next=no->prev=0;
     active[bucket]=no;
@@ -832,42 +740,9 @@ template <class T> void MaxFlow<T>::addActive(fnode *no, int bucket){
     no->prev=0;
     active[bucket]=no;
   }
-#ifdef DEB
-  if(no->index==88){
-    std::cout<<"Lista bucket attivo dopo "<<bucket<<":"<<std::endl;
-    fnode *ptr=active[bucket];
-    if(ptr==0) std::cout<<"[]"<<std::endl;
-    else{
-      std::cout<<"["<<ptr->index<<":"<<ptr->d;
-      ptr=ptr->next;
-      while(ptr!=0){
-	std::cout<<", "<<ptr->index<<":"<<ptr->d;
-	ptr=ptr->next;
-      }
-      std::cout<<"]"<<std::endl;
-    }
-  }
-#endif
 }
 
 template <class T> void MaxFlow<T>::delActive(fnode *no, int bucket){
-#ifdef DEB
-  if(no->index==88){
-    std::cout<<"Lista bucket attivo "<<bucket<<":"<<std::endl;
-    fnode *ptr=active[bucket];
-    if(ptr==0) std::cout<<"[]"<<std::endl;
-    else{
-      std::cout<<"["<<ptr->index<<":"<<ptr->d;
-      ptr=ptr->next;
-      while(ptr!=0){
-	std::cout<<", "<<ptr->index<<":"<<ptr->d;
-	ptr=ptr->next;
-      }
-      std::cout<<"]"<<std::endl;
-    }
-    std::cout<<"cancello il nodo "<<no<<" dal bucket "<<bucket<<std::endl;
-  }
-#endif
   if(no->prev==0){
     active[bucket]=no->next;
     if(no->next!=0) no->next->prev=0;
@@ -879,26 +754,6 @@ template <class T> void MaxFlow<T>::delActive(fnode *no, int bucket){
     no->prev->next=no->next;
     if(no->next!=0) no->next->prev=no->prev;
   }
-#ifdef DEB
-  if(no->index==88){
-    std::cout<<"Lista bucket attivo dopo "<<bucket<<":"<<std::endl;
-    fnode *ptr=active[bucket];
-    if(ptr==0) std::cout<<"[]"<<std::endl;
-    else{
-      std::cout<<"["<<ptr->index<<":"<<ptr->d;
-      ptr=ptr->next;
-      while(ptr!=0){
-	std::cout<<", "<<ptr->index<<":"<<ptr->d;
-	ptr=ptr->next;
-      }
-      std::cout<<"]"<<std::endl;
-    }
-  }
-#endif
-  // if(bucket==1 && active[1]!=0){
-  //   fnode *ptr=active[1];
-  //   assert(active[1]->next!=active[1]);
-  // }
   no->next=no->prev=0;
 }
 
